@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -40,20 +39,17 @@ public class ApplicationService {
     private final AuthenticationRepository authenticationRepository;
     private final AuthenticationService authenticationService;
     private final LogRepository logRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     @Autowired
     public ApplicationService(ApplicationRepository applicationRepository,
                               ApplicationRateService applicationRateService,
                               AuthenticationRepository authenticationRepository,
-                              AuthenticationService authenticationService, LogRepository logRepository,
-                              BCryptPasswordEncoder bCryptPasswordEncoder) {
+                              AuthenticationService authenticationService, LogRepository logRepository) {
         this.applicationRepository = applicationRepository;
         this.applicationRateService = applicationRateService;
         this.authenticationRepository = authenticationRepository;
         this.authenticationService = authenticationService;
         this.logRepository = logRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
 
@@ -67,6 +63,7 @@ public class ApplicationService {
         // that's why store in db it without hashing
         Application application = new Application(UUID.randomUUID().toString().replace("-", ""), displayName);
         application = applicationRepository.save(application);
+        logger.debug("new application was registered: '{}'", application);
         ResponseEntity<Application> response = new ResponseEntity<>(application, HttpStatus.OK);
         return new AsyncResult<>(response);
     }
@@ -96,6 +93,8 @@ public class ApplicationService {
         Log log = new Log(authentication.getApplication(), logRequest.getLogger(), logRequest.getLevel(),
                           logRequest.getMessage());
         logRepository.save(log);
+
+        logger.debug("log was persisted.");
         return new AsyncResult<>(new ResponseEntity<>(new LogResponse(true), HttpStatus.OK));
     }
 
@@ -104,7 +103,7 @@ public class ApplicationService {
         return lastAppAuth.size() == 1
                && lastAppAuth.get(0).getAuthenticationTime().until(LocalDateTime.now(), ChronoUnit.MINUTES)
                   <= authenticationService.getSessionLifeTimeMin()
-               || !bCryptPasswordEncoder.matches(lastAppAuth.get(0).getAccessTokenHash(), accessToken);
+               && accessToken.equals(lastAppAuth.get(0).getAccessToken());
     }
 
     private boolean validateInput(LogRequest logRequest, String accessToken) {

@@ -17,6 +17,13 @@ public class ApplicationProperty {
     @Column(name = "property_value")
     private String propertyValue;
 
+    public ApplicationProperty() {
+    }
+
+    public ApplicationProperty(String propertyName, String propertyValue) {
+        this.propertyName = propertyName;
+        this.propertyValue = propertyValue;
+    }
 
     public String getPropertyName() {
         return propertyName;

@@ -15,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -32,25 +31,22 @@ import java.util.UUID;
 public class AuthenticationService {
     private static final Logger logger = LogManager.getLogger(AuthenticationService.class);
 
-    private static final int DEFAULT_SESSION_LIFETIME_MIN = 30;
-    private static final String SESSION_LIFETIME_PROPERTY = "session_lifetime_min";
+    public static final int DEFAULT_SESSION_LIFETIME_MIN = 30;
+    public static final String SESSION_LIFETIME_PROPERTY = "session_lifetime_min";
 
 
     private final AuthenticationRepository authenticationRepository;
     private final ApplicationRepository applicationRepository;
     private final ApplicationPropertyRepository applicationPropertyRepository;
-    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
 
     @Autowired
     public AuthenticationService(AuthenticationRepository authenticationRepository,
                                  ApplicationRepository applicationRepository,
-                                 ApplicationPropertyRepository applicationPropertyRepository,
-                                 BCryptPasswordEncoder bCryptPasswordEncoder) {
+                                 ApplicationPropertyRepository applicationPropertyRepository) {
         this.authenticationRepository = authenticationRepository;
         this.applicationRepository = applicationRepository;
         this.applicationPropertyRepository = applicationPropertyRepository;
-        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Async
@@ -81,18 +77,22 @@ public class AuthenticationService {
             return new AsyncResult<>(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
         }
 
-        String accessTokenHash = bCryptPasswordEncoder.encode(UUID.randomUUID().toString());
-        Authentication authentication = new Authentication(application, accessTokenHash, LocalDateTime.now());
+        String accessToken = UUID.randomUUID().toString().replace("-", "");
+        Authentication authentication = new Authentication(application, accessToken, LocalDateTime.now());
         authenticationRepository.save(authentication);
 
-        ResponseEntity<AuthResponse> response = new ResponseEntity<>(new AuthResponse(accessTokenHash), HttpStatus.OK);
+        ResponseEntity<AuthResponse> response = new ResponseEntity<>(new AuthResponse(accessToken), HttpStatus.OK);
         return new AsyncResult<>(response);
     }
 
 
     public int getSessionLifeTimeMin() {
-        ApplicationProperty lifeTimeMinProperty = applicationPropertyRepository.findOne(SESSION_LIFETIME_PROPERTY);
-        return lifeTimeMinProperty == null ? DEFAULT_SESSION_LIFETIME_MIN :
-               Integer.valueOf(lifeTimeMinProperty.getPropertyValue());
+        try {
+            ApplicationProperty lifeTimeMinProperty = applicationPropertyRepository.findOne(SESSION_LIFETIME_PROPERTY);
+            return lifeTimeMinProperty == null ? DEFAULT_SESSION_LIFETIME_MIN :
+                   Integer.valueOf(lifeTimeMinProperty.getPropertyValue());
+        } catch (NumberFormatException e) { // if in db not valid integer
+            return DEFAULT_SESSION_LIFETIME_MIN;
+        }
     }
 }

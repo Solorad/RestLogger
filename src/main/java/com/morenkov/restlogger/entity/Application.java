@@ -58,4 +58,13 @@ public class Application {
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
     }
+
+    @Override
+    public String toString() {
+        // don't add secret in toString
+        return "Application{" +
+               "applicationId='" + applicationId + '\'' +
+               ", displayName='" + displayName + '\'' +
+               '}';
+    }
 }
