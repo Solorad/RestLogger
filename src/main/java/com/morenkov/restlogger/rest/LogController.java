@@ -28,10 +28,13 @@ public class LogController {
         this.applicationService = applicationService;
     }
 
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity handleBadInput(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest().body("Invalid json");
     }
+
+
 
 
     @RequestMapping(value = "/auth", method = RequestMethod.POST)

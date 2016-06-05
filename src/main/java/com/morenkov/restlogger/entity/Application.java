@@ -1,5 +1,6 @@
 package com.morenkov.restlogger.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
@@ -18,6 +19,7 @@ public class Application {
     @GenericGenerator(name = "uuid", strategy = "uuid")
     @Column(name = "application_id")
     @Size(max = 32)
+    @JsonProperty(value = "application_id")
     private String applicationId;
 
     @Size(max = 32)
@@ -25,6 +27,7 @@ public class Application {
 
     @Column(name = "display_name")
     @Size(max = 32)
+    @JsonProperty(value = "display_name")
     private String displayName;
 
     protected Application() {
