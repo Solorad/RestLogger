@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author emorenkov
  */
 public class AuthResponse {
-    @JsonProperty(value="access_token")
+    @JsonProperty(value = "access_token")
     private String accessToken;
 
     public AuthResponse() {

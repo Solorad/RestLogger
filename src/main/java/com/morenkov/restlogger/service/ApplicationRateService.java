@@ -17,12 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @ConfigurationProperties(prefix = "rest.logger.request.rate-limiting")
 public class ApplicationRateService {
     private static final Logger logger = LogManager.getLogger(AuthenticationService.class);
-
-    private Integer accessPerMinute;
-    private Integer waitOnBlockMinutes;
-
     // use here in-memory concurrent hash table instead of using
     private final ConcurrentHashMap<String, AccessDescription> appAccessRateMap;
+    private Integer accessPerMin;
+    private Integer waitOnBlockMin;
 
     public ApplicationRateService() {
         this.appAccessRateMap = new ConcurrentHashMap<>();
@@ -51,13 +49,29 @@ public class ApplicationRateService {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime lastUse = accessDescription.lastUse;
             accessDescription.lastUse = now;
-            if (lastUse.until(now, ChronoUnit.MINUTES) > waitOnBlockMinutes) {
+            if (lastUse.until(now, ChronoUnit.MINUTES) > waitOnBlockMin) {
                 accessDescription.counter = 1;
-            } else if (accessDescription.counter++ > accessPerMinute) {
+            } else if (accessDescription.counter++ >= accessPerMin) {
                 return true;
             }
         }
         return false;
+    }
+
+    public Integer getAccessPerMin() {
+        return accessPerMin;
+    }
+
+    public void setAccessPerMin(Integer accessPerMin) {
+        this.accessPerMin = accessPerMin;
+    }
+
+    public Integer getWaitOnBlockMin() {
+        return waitOnBlockMin;
+    }
+
+    public void setWaitOnBlockMin(Integer waitOnBlockMin) {
+        this.waitOnBlockMin = waitOnBlockMin;
     }
 
     private class AccessDescription {
@@ -71,47 +85,5 @@ public class ApplicationRateService {
             this.lastUse = lastUse;
             this.counter = 1;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof AccessDescription)) {
-                return false;
-            }
-
-            AccessDescription that = (AccessDescription) o;
-
-            if (counter != that.counter) {
-                return false;
-            }
-            return !(lastUse != null ? !lastUse.equals(that.lastUse) : that.lastUse != null);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = counter;
-            result = 31 * result + (lastUse != null ? lastUse.hashCode() : 0);
-            return result;
-        }
-    }
-
-
-    public Integer getAccessPerMinute() {
-        return accessPerMinute;
-    }
-
-    public void setAccessPerMinute(Integer accessPerMinute) {
-        this.accessPerMinute = accessPerMinute;
-    }
-
-    public Integer getWaitOnBlockMinutes() {
-        return waitOnBlockMinutes;
-    }
-
-    public void setWaitOnBlockMinutes(Integer waitOnBlockMinutes) {
-        this.waitOnBlockMinutes = waitOnBlockMinutes;
     }
 }

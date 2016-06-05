@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author emorenkov
  */
 public class LogRequest {
-    @JsonProperty(value="application_id")
+    @JsonProperty(value = "application_id")
     private String applicationId;
     private String logger;
     private String level;

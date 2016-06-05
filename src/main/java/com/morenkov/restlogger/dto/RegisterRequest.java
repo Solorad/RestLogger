@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author emorenkov
  */
 public class RegisterRequest {
-    @JsonProperty(value="display_name")
+    @JsonProperty(value = "display_name")
     private String displayName;
 
     public String getDisplayName() {

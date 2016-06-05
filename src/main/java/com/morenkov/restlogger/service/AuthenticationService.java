@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.concurrent.ListenableFuture;
@@ -38,15 +39,18 @@ public class AuthenticationService {
     private final AuthenticationRepository authenticationRepository;
     private final ApplicationRepository applicationRepository;
     private final ApplicationPropertyRepository applicationPropertyRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
 
     @Autowired
     public AuthenticationService(AuthenticationRepository authenticationRepository,
                                  ApplicationRepository applicationRepository,
-                                 ApplicationPropertyRepository applicationPropertyRepository) {
+                                 ApplicationPropertyRepository applicationPropertyRepository,
+                                 BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.authenticationRepository = authenticationRepository;
         this.applicationRepository = applicationRepository;
         this.applicationPropertyRepository = applicationPropertyRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Async
@@ -72,15 +76,16 @@ public class AuthenticationService {
         }
 
         Application application = applicationRepository.findOne(applicationId);
+
         if (application == null || !applicicationSecret.equals(application.getSecret())) {
             return new AsyncResult<>(new ResponseEntity<>(HttpStatus.UNAUTHORIZED));
         }
 
-        String accessToken = UUID.randomUUID().toString().replace("-", "");
-        Authentication authentication = new Authentication(application, accessToken, LocalDateTime.now());
+        String accessTokenHash = bCryptPasswordEncoder.encode(UUID.randomUUID().toString());
+        Authentication authentication = new Authentication(application, accessTokenHash, LocalDateTime.now());
         authenticationRepository.save(authentication);
 
-        ResponseEntity<AuthResponse> response = new ResponseEntity<>(new AuthResponse(accessToken), HttpStatus.OK);
+        ResponseEntity<AuthResponse> response = new ResponseEntity<>(new AuthResponse(accessTokenHash), HttpStatus.OK);
         return new AsyncResult<>(response);
     }
 

@@ -18,9 +18,9 @@ public class Authentication {
     @JoinColumn(name = "application_id")
     private Application application;
 
-    @Column(name = "access_token")
+    @Column(name = "access_token_hash")
     @Size(max = 32)
-    private String accessToken;
+    private String accessTokenHash;
 
     @Column(name = "authentication_time")
     private LocalDateTime authenticationTime;
@@ -29,9 +29,9 @@ public class Authentication {
     protected Authentication() {
     }
 
-    public Authentication(Application application, String accessToken, LocalDateTime authenticationTime) {
+    public Authentication(Application application, String accessTokenHash, LocalDateTime authenticationTime) {
         this.application = application;
-        this.accessToken = accessToken;
+        this.accessTokenHash = accessTokenHash;
         this.authenticationTime = authenticationTime;
     }
 
@@ -51,12 +51,12 @@ public class Authentication {
         this.application = application;
     }
 
-    public String getAccessToken() {
-        return accessToken;
+    public String getAccessTokenHash() {
+        return accessTokenHash;
     }
 
-    public void setAccessToken(String accessToken) {
-        this.accessToken = accessToken;
+    public void setAccessTokenHash(String accessTokenHash) {
+        this.accessTokenHash = accessTokenHash;
     }
 
     public LocalDateTime getAuthenticationTime() {

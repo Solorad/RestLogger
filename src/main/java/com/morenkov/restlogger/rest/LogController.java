@@ -36,17 +36,20 @@ public class LogController {
 
     @RequestMapping(value = "/auth", method = RequestMethod.POST)
     public ListenableFuture<ResponseEntity<?>> authenticate(@RequestHeader("Authorization") String authorization) {
+        logger.debug("authorization started with  credentials '{}'", authorization);
         return authenticationService.authenticate(authorization);
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public ListenableFuture<ResponseEntity<?>>  register(@RequestBody RegisterRequest registerRequest) {
+    public ListenableFuture<ResponseEntity<?>> register(@RequestBody RegisterRequest registerRequest) {
+        logger.debug("register new application started.");
         return applicationService.registerEndpoint(registerRequest.getDisplayName());
     }
 
     @RequestMapping(value = "/log", method = RequestMethod.POST)
-    public ListenableFuture<ResponseEntity<?>>  log(@RequestHeader("Authorization") String accessToken,
-                                                    @RequestBody LogRequest logRequest) {
+    public ListenableFuture<ResponseEntity<?>> log(@RequestHeader("Authorization") String accessToken,
+                                                   @RequestBody LogRequest logRequest) {
+        logger.debug("log message");
         return applicationService.writeLog(accessToken, logRequest);
     }
 }
