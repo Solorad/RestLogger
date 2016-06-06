@@ -79,4 +79,16 @@ public class Log {
     public void setMessage(String message) {
         this.message = message;
     }
+
+
+    @Override
+    public String toString() {
+        return "Log{" +
+               "logId=" + logId +
+               ", application=" + application +
+               ", logger='" + logger + '\'' +
+               ", level='" + level + '\'' +
+               ", message='" + message + '\'' +
+               '}';
+    }
 }

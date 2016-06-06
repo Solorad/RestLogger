@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @ConfigurationProperties(prefix = "rest.logger.request.rate-limiting")
 public class ApplicationRateService {
-    private static final Logger logger = LogManager.getLogger(AuthenticationService.class);
+    private static final Logger logger = LogManager.getLogger(ApplicationRateService.class);
     // use here in-memory concurrent hash table instead of using
     private final ConcurrentHashMap<String, AccessDescription> appAccessRateMap;
     private Integer accessPerMin;
@@ -27,7 +27,7 @@ public class ApplicationRateService {
     }
 
     public boolean checkApplicationAccessRateExceeded(String applicationId) {
-        logger.debug("check {}", applicationId);
+        logger.info("check {}", applicationId);
         AccessDescription accessDescription = appAccessRateMap.get(applicationId);
         if (accessDescription != null) {
             if (checkExistedAccess(accessDescription)) {
@@ -49,7 +49,7 @@ public class ApplicationRateService {
             LocalDateTime now = LocalDateTime.now();
             LocalDateTime lastUse = accessDescription.lastUse;
             accessDescription.lastUse = now;
-            if (lastUse.until(now, ChronoUnit.MINUTES) > waitOnBlockMin) {
+            if (lastUse.until(now, ChronoUnit.MINUTES) >= waitOnBlockMin) {
                 accessDescription.counter = 1;
             } else if (accessDescription.counter++ >= accessPerMin) {
                 return true;

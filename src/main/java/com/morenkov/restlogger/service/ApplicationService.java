@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.util.concurrent.ListenableFuture;
 
 import java.time.LocalDateTime;
@@ -53,35 +54,37 @@ public class ApplicationService {
     }
 
 
-    @Async
     @Transactional
-    public ListenableFuture<ResponseEntity<?>> registerEndpoint(String displayName) {
-        if (displayName == null) {
-            return new AsyncResult<>(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+    public ResponseEntity<?> registerEndpoint(String displayName) {
+        if (StringUtils.isEmpty(displayName) || displayName.length() > 32) {
+            logger.warn("display name must be not null and less than 32 symbol.");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         // it is may be needed to show application secret to user in future on UI for some purpose.
         // that's why store in db it without hashing
         Application application = new Application(UUID.randomUUID().toString().replace("-", ""), displayName);
         application = applicationRepository.save(application);
-        logger.debug("new application was registered: '{}'", application);
-        ResponseEntity<Application> response = new ResponseEntity<>(application, HttpStatus.OK);
-        return new AsyncResult<>(response);
+        logger.info("new application was registered: '{}'", application);
+        return new ResponseEntity<>(application, HttpStatus.OK);
     }
 
     @Async
     @Transactional
     public ListenableFuture<ResponseEntity<?>> writeLog(String accessToken, LogRequest logRequest) {
         if (!validateInput(logRequest, accessToken)) {
+            logger.warn("Input params are not correct for logging.");
             return new AsyncResult<>(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
         }
         //check rate is not exceeded
         if (applicationRateService.checkApplicationAccessRateExceeded(logRequest.getApplicationId())) {
+            logger.warn("Access rate was exceeded for application.");
             return new AsyncResult<>(new ResponseEntity<>("rate limit exceeded", HttpStatus.FORBIDDEN));
         }
 
         List<Authentication> lastAppAuth =
                 authenticationRepository.findLastAppAuth(logRequest.getApplicationId(), new PageRequest(0, 1));
         if (!validateAuthentication(accessToken, lastAppAuth)) {
+            logger.warn("Provided access token is not equals to application token.");
             return new AsyncResult<>(new ResponseEntity<>(new LogResponse(false), HttpStatus.FORBIDDEN));
         }
 
@@ -94,7 +97,7 @@ public class ApplicationService {
                           logRequest.getMessage());
         logRepository.save(log);
 
-        logger.debug("log was persisted.");
+        logger.info("log '{}' was persisted.", log);
         return new AsyncResult<>(new ResponseEntity<>(new LogResponse(true), HttpStatus.OK));
     }
 
@@ -112,6 +115,9 @@ public class ApplicationService {
                && !isEmpty(logRequest.getLevel())
                && !isEmpty(logRequest.getLogger())
                && !isEmpty(logRequest.getMessage())
-               && !isEmpty(accessToken);
+               && !isEmpty(accessToken)
+               && logRequest.getLevel().length() < 256
+               && logRequest.getLogger().length() < 256
+               && logRequest.getMessage().length() < 2048;
     }
 }

@@ -1,6 +1,8 @@
 package it.com.morenkov.restlogger;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.morenkov.restlogger.CrossoverRestServiceApplication;
+import com.morenkov.restlogger.dto.AuthResponse;
 import com.morenkov.restlogger.entity.Application;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,6 +17,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.io.UnsupportedEncodingException;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -37,6 +41,7 @@ public class CrossoverRestServiceApplicationTest {
     private WebApplicationContext context;
 
     private MockMvc mockMvc;
+    private ObjectMapper mapper = new ObjectMapper();
 
     @Before
     public void setUp() {
@@ -46,11 +51,9 @@ public class CrossoverRestServiceApplicationTest {
 
     @Test
     public void testRegisterInvalidJson() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(
-                post("/register").content("{}").contentType(MediaType.APPLICATION_JSON)).andReturn();
-
-        mvcResult.getAsyncResult();
-        mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isBadRequest());
+        mockMvc.perform(
+                post("/register").content("{}").contentType(MediaType.APPLICATION_JSON))
+               .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -62,10 +65,8 @@ public class CrossoverRestServiceApplicationTest {
 
     @Test
     public void testRegister() throws Exception {
-        MvcResult mvcResult = registerApplication();
-
-        mvcResult.getAsyncResult();
-        mockMvc.perform(asyncDispatch(mvcResult))
+        mockMvc.perform(
+                post("/register").content("{\"display_name\":\"test\"}").contentType(MediaType.APPLICATION_JSON))
                .andExpect(status().isOk())
                .andExpect(content().contentType("application/json;charset=UTF-8"))
                .andExpect(jsonPath("display_name", equalTo("test")))
@@ -80,30 +81,20 @@ public class CrossoverRestServiceApplicationTest {
 
     @Test
     public void testAuthWithInvalidHeader() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(post("/auth").header("Authorization", "some text")).andReturn();
-
-        mvcResult.getAsyncResult();
-        mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/auth").header("Authorization", "some text")).andExpect(status().isBadRequest());
     }
 
     @Test
     public void testAuthWithInvalidApplication() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(post("/auth").header("Authorization", "app_id:secret")).andReturn();
-
-        mvcResult.getAsyncResult();
-        mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/auth").header("Authorization", "app_id:secret")).andExpect(status().isUnauthorized());
     }
 
     @Test
     public void testAuth() throws Exception {
         Application application = getApplication();
 
-        MvcResult authorizationResult = mockMvc
-                .perform(post("/auth").header("Authorization",
-                                              application.getApplicationId() + ":" + application.getSecret()))
-                .andReturn();
-
-        mockMvc.perform(asyncDispatch(authorizationResult))
+        mockMvc.perform(post("/auth").header("Authorization",
+                                             application.getApplicationId() + ":" + application.getSecret()))
                .andExpect(status().isOk())
                .andExpect(content().contentType("application/json;charset=UTF-8"))
                .andExpect(jsonPath("access_token", notNullValue()));
@@ -124,6 +115,7 @@ public class CrossoverRestServiceApplicationTest {
 
     /**
      * Application with such id doesn't exist.
+     *
      * @throws Exception
      */
     @Test
@@ -149,9 +141,9 @@ public class CrossoverRestServiceApplicationTest {
                 post("/log")
                         .header("Authorization", "invalid_token")
                         .content("{\"application_id\" : \"" + application.getApplicationId() + "\",\n"
-                                + " \"logger\" : \"loggerName\",\n"
-                                + " \"level\" : \"Error\",\n"
-                                + " \"message\" : \"message\"}")
+                                 + " \"logger\" : \"loggerName\",\n"
+                                 + " \"level\" : \"Error\",\n"
+                                 + " \"message\" : \"message\"}")
                         .contentType(MediaType.APPLICATION_JSON))
                                      .andReturn();
 
@@ -159,16 +151,41 @@ public class CrossoverRestServiceApplicationTest {
         mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isForbidden());
     }
 
+    @Test
+    public void testLog() throws Exception {
+        Application application = getApplication();
+
+        AuthResponse authorizeApplication = getAuthResponseForApplication(application);
+        MvcResult mvcResult = mockMvc.perform(
+                post("/log")
+                        .header("Authorization", authorizeApplication.getAccessToken())
+                        .content("{\"application_id\" : \"" + application.getApplicationId() + "\",\n"
+                                 + " \"logger\" : \"loggerName\",\n"
+                                 + " \"level\" : \"Error\",\n"
+                                 + " \"message\" : \"message\"}")
+                        .contentType(MediaType.APPLICATION_JSON))
+                                     .andReturn();
+
+        mvcResult.getAsyncResult();
+        mockMvc.perform(asyncDispatch(mvcResult))
+               .andExpect(status().isOk())
+               .andExpect(content().contentType("application/json;charset=UTF-8"))
+               .andExpect(jsonPath("success", equalTo(true)));
+    }
+
 
     private Application getApplication() throws Exception {
-        MvcResult registerResult = registerApplication();
-        ResponseEntity asyncResult = (ResponseEntity) registerResult.getAsyncResult();
-        return (Application) asyncResult.getBody();
+        MvcResult mvcResult = mockMvc.perform(
+                post("/register").content("{\"display_name\":\"test\"}").contentType(MediaType.APPLICATION_JSON))
+                                     .andReturn();
+        return mapper.readValue(mvcResult.getResponse().getContentAsString(), Application.class);
     }
 
-    private MvcResult registerApplication() throws Exception {
-        return mockMvc.perform(
-                post("/register").content("{\"display_name\":\"test\"}").contentType(MediaType.APPLICATION_JSON))
-                      .andReturn();
+    private AuthResponse getAuthResponseForApplication(Application application) throws Exception {
+        MvcResult mvcResult = mockMvc.perform(post("/auth").header("Authorization",
+                                                                       application.getApplicationId() + ":"
+                                                                       + application.getSecret())).andReturn();
+        return mapper.readValue(mvcResult.getResponse().getContentAsString(), AuthResponse.class);
     }
+
 }

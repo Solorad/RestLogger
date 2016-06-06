@@ -17,7 +17,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.concurrent.ListenableFuture;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -75,16 +74,14 @@ public class ApplicationServiceTest {
 
     @Test
     public void registerEndpointNull() throws ExecutionException, InterruptedException {
-        ListenableFuture<ResponseEntity<?>> responseEntityListenableFuture = applicationService.registerEndpoint(null);
-        ResponseEntity<?> responseEntity = responseEntityListenableFuture.get();
+        ResponseEntity<?> responseEntity = applicationService.registerEndpoint(null);
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
     }
 
     @Test
     public void registerEndpoint() throws ExecutionException, InterruptedException {
         when(applicationRepository.save(any(Application.class))).thenReturn(application);
-        ListenableFuture<ResponseEntity<?>> responseEntityListenableFuture = applicationService.registerEndpoint("test");
-        ResponseEntity responseEntity = responseEntityListenableFuture.get();
+        ResponseEntity responseEntity = applicationService.registerEndpoint("test");
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         Application body = (Application) responseEntity.getBody();
         assertNotNull(body);

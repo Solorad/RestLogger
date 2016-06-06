@@ -74,31 +74,31 @@ public class AuthenticationServiceTest {
 
     @Test
     public void testAuthenticateNull() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> responseEntity = authenticationService.authenticate(null).get();
+        ResponseEntity<?> responseEntity = authenticationService.authenticate(null);
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
     }
 
     @Test
     public void testAuthenticateInvalidAuthentication() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> responseEntity = authenticationService.authenticate("just_simple_text").get();
+        ResponseEntity<?> responseEntity = authenticationService.authenticate("just_simple_text");
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
     }
 
     @Test
     public void testAuthenticateApplicationNotFound() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> responseEntity = authenticationService.authenticate("some_app_id:some__secret").get();
+        ResponseEntity<?> responseEntity = authenticationService.authenticate("some_app_id:some__secret");
         assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
     }
 
     @Test
     public void testAuthenticateApplicationSecretNotEqual() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> responseEntity = authenticationService.authenticate("app_id:invalid_secret").get();
+        ResponseEntity<?> responseEntity = authenticationService.authenticate("app_id:invalid_secret");
         assertEquals(HttpStatus.UNAUTHORIZED, responseEntity.getStatusCode());
     }
 
     @Test
     public void testAuthenticateApplicationSecretEqual() throws ExecutionException, InterruptedException {
-        ResponseEntity<?> responseEntity = authenticationService.authenticate("app_id:app_secret").get();
+        ResponseEntity<?> responseEntity = authenticationService.authenticate("app_id:app_secret");
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
         AuthResponse response = (AuthResponse) responseEntity.getBody();
